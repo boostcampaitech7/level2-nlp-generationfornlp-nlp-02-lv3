@@ -8,6 +8,7 @@
 config/*.yaml
 config/token.json
 config/credentials.json
+.idea/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

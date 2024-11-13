@@ -12,7 +12,7 @@ logger.add("gpt_answers_log.log", rotation="1 MB")  # 1MB 넘을 시 새 파일 
 client = OpenAI(api_key="")
 
 data = "../data/train.csv"
-model = "gpt-4o"
+model = "gpt-4o-mini"
 
 # CSV 파일 읽기
 df = pd.read_csv(data)

@@ -1,9 +1,11 @@
+import ast
+import re
+import time
+
+from loguru import logger
 from openai import OpenAI
 import pandas as pd
-import re
-import ast
-import time
-from loguru import logger
+
 
 # 로그 파일 설정
 logger.add("gpt_answers_log.log", rotation="1 MB")  # 1MB 넘을 시 새 파일 생성
@@ -19,6 +21,7 @@ df = pd.read_csv(data)
 
 # 새로운 컬럼 생성
 df[f"{model}_answer"] = None
+
 
 def generate_answer(paragraph, question, choices):
     # GPT-3.5 Turbo 모델 프롬프트 구성
@@ -42,13 +45,14 @@ def generate_answer(paragraph, question, choices):
         messages=[{"role": "user", "content": prompt}],
         model=model,
         temperature=0,  # 온도 설정
-        max_tokens=8,     # 응답 토큰 길이 제한
+        max_tokens=8,  # 응답 토큰 길이 제한
     )
 
     # 모델의 응답을 번호로 추출
     answer = response.choices[0].message.content.strip()
     request_id = response.id
     return answer, request_id  # request ID 반환
+
 
 # 각 행에 대해 API 호출 및 답변 저장
 for index, row in df.iterrows():
@@ -59,7 +63,7 @@ for index, row in df.iterrows():
 
     try:
         answer, request_id = generate_answer(paragraph, question, choices)
-        answer_parsed = re.search(r'\b[1-5]\b', answer)  # 1에서 4까지의 숫자만 찾음
+        answer_parsed = re.search(r"\b[1-5]\b", answer)  # 1에서 4까지의 숫자만 찾음
 
         if answer_parsed:
             answer_parsed = answer_parsed.group()  # 매칭된 첫 번째 숫자 추출
@@ -67,7 +71,9 @@ for index, row in df.iterrows():
             answer_parsed = None  # 매칭이 없는 경우 None으로 설정
             logger.warning(f"Index {index}: No valid answer found in response - {answer}")
 
-        logger.info(f"Index {index}: Answer generated - {answer}, parsed answer - {answer_parsed}, request_id - {request_id}")
+        logger.info(
+            f"Index {index}: Answer generated - {answer}," f"parsed answer - {answer_parsed}, request_id - {request_id}"
+        )
         df.at[index, f"{model}_answer"] = answer_parsed
     except Exception as e:
         logger.error(f"Error at index {index}: {e}")

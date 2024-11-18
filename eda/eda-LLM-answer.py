@@ -1,5 +1,7 @@
-import pandas as pd
 import ast
+
+import pandas as pd
+
 
 def calculate_accuracy(model):
     # CSV 파일 읽기
@@ -23,6 +25,7 @@ def calculate_accuracy(model):
     print(f"Accuracy: {accuracy:.2f}%")
 
     return accuracy
+
 
 if __name__ == "__main__":
     calculate_accuracy("gpt-3.5-turbo")

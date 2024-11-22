@@ -3,8 +3,6 @@
 # python 3.10.13
 
 # Deep Learning
-auto_gptq==0.7.1
-bitsandbytes==0.44.1
 evaluate==0.4.3
 huggingface-hub==0.26.2
 numpy==2.0.0
@@ -14,8 +12,14 @@ scikit-learn==1.5.2
 torch==2.5.1 # 2.5.1+cu124
 tqdm==4.67.0
 transformers==4.46.2
-trl==0.12.0
+trl==0.8.6
 wandb==0.18.5
+
+# Quantization
+auto_gptq==0.7.1
+bitsandbytes==0.44.1
+# pip install "unsloth[cu124-torch250] @ git+https://github.com/unslothai/unsloth.git"
+xformers==0.0.28.post3
 
 # RAG
 elasticsearch==8.16.0
@@ -23,6 +27,10 @@ konlpy==0.6.0
 rank-bm25==0.2.2
 wikiextractor==3.0.6
 faiss-cpu==1.9.0 # faiss-gpu==1.7.2
+
+# Labeling
+# cleanlab==2.7.0
+# xgboost==2.1.2
 
 # Utils
 ipykernel==6.29.5

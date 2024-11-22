@@ -21,6 +21,8 @@ def main():
     # env, config, log, seed 설정
     load_env_file()
     config = load_config()
+    if config["training"]["params"]["torch_compile_backend"] == "eager":
+        os.environ["ACCELERATE_DYNAMO_BACKEND"] = "eager"
     set_logger(log_file=config["log"]["file"], log_level=config["log"]["level"])
     set_seed()
 
@@ -40,7 +42,7 @@ def main():
 
     try:
         # 모델 및 토크나이저 설정
-        model_handler = ModelHandler(config["model"])
+        model_handler = ModelHandler(config)
         model, tokenizer = model_handler.setup()
 
         # 학습용 데이터 처리

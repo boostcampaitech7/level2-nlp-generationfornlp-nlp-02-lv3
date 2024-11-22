@@ -25,11 +25,12 @@ data:
 
 model:
   base_model: "beomi/gemma-ko-2b"
+  use_xformers: False
   model:
     torch_dtype: "float16"
     low_cpu_mem_usage: true
     use_cache: false # gradient_checkpointing이 true면 false여야함
-    quantization: "" # BitsAndBytes, auto
+    quantization: "" # BitsAndBytes, auto, unsloth
     bits: 8 # 8 or 4
     use_double_quant: false
   tokenizer:
@@ -45,7 +46,6 @@ training:
     target_modules: ["q_proj", "k_proj"]
     bias: "none"
     task_type: "CAUSAL_LM"
-
   params:
     do_train: true
     do_eval: true
@@ -53,6 +53,7 @@ training:
     max_seq_length: 2048
     per_device_train_batch_size: 1
     per_device_eval_batch_size: 1
+    torch_compile_backend: "" # "inductor"
     gradient_accumulation_steps: 1
     gradient_checkpointing: true
     max_grad_norm: 0.3

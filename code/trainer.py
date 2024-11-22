@@ -3,9 +3,9 @@ import evaluate
 import numpy as np
 from peft import LoraConfig
 import torch
-from transformers import EarlyStoppingCallback
+from transformers import EarlyStoppingCallback, TrainingArguments
 from transformers.trainer_pt_utils import get_parameter_names
-from trl import DataCollatorForCompletionOnlyLM, SFTConfig, SFTTrainer
+from trl import DataCollatorForCompletionOnlyLM, SFTTrainer
 
 
 class CustomTrainer:
@@ -20,6 +20,7 @@ class CustomTrainer:
 
     def train(self):
         trainer = self._setup_trainer()
+        torch.cuda.empty_cache()
         trainer.train()
         return trainer.model
 
@@ -62,15 +63,17 @@ class CustomTrainer:
         )
 
         # SFT 설정
-        sft_config = SFTConfig(
+        sft_config = TrainingArguments(
             do_train=self.training_config["params"]["do_train"],
             do_eval=self.training_config["params"]["do_eval"],
             lr_scheduler_type=self.training_config["params"]["lr_scheduler_type"],
-            max_seq_length=self.training_config["params"]["max_seq_length"],
+            # max_seq_length=self.training_config["params"]["max_seq_length"],
             per_device_train_batch_size=self.training_config["params"]["per_device_train_batch_size"],
             per_device_eval_batch_size=self.training_config["params"]["per_device_eval_batch_size"],
+            torch_compile_backend=self.training_config["params"]["torch_compile_backend"],
             gradient_accumulation_steps=self.training_config["params"]["gradient_accumulation_steps"],
             gradient_checkpointing=self.training_config["params"]["gradient_checkpointing"],
+            gradient_checkpointing_kwargs={"use_reentrant": False},
             max_grad_norm=self.training_config["params"]["max_grad_norm"],
             num_train_epochs=self.training_config["params"]["num_train_epochs"],
             learning_rate=self.training_config["params"]["learning_rate"],

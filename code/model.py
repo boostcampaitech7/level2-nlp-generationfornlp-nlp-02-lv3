@@ -1,17 +1,50 @@
 from loguru import logger
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from unsloth import FastLanguageModel
 
 
 class ModelHandler:
-    def __init__(self, model_config):
-        self.base_model = model_config["base_model"]
-        self.model_config = model_config["model"]
-        self.tokenizer_config = model_config["tokenizer"]
+    def __init__(self, config):
+        self.base_model = config["model"]["base_model"]
+        self.model_config = config["model"]["model"]
+        self.tokenizer_config = config["model"]["tokenizer"]
+        self.use_xformers = config["model"].get("use_xformers", False)
+        self.lora_config = config["training"]["lora"]
+        self.max_seq_length = config["training"]["params"]["max_seq_length"]
 
     def setup(self):
-        model = self._load_model()
-        tokenizer = self._load_tokenizer()
+        if self.model_config["quantization"] == "unsloth":
+            return self._load_model_unsloth()
+        else:
+            model = self._load_model()
+            if self.use_xformers:
+                model.enable_xformers_memory_efficient_attention()
+            tokenizer = self._load_tokenizer()
+            return model, tokenizer
+
+    def _load_model_unsloth(self):
+        model, tokenizer = FastLanguageModel.from_pretrained(
+            model_name=self.base_model,
+            max_seq_length=self.max_seq_length,
+            load_in_4bit=True,
+            dtype=None,
+        )
+
+        model = FastLanguageModel.get_peft_model(
+            model,
+            r=self.lora_config["r"],
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+            # target_modules=self.lora_config["target_modules"],
+            lora_alpha=self.lora_config["lora_alpha"],
+            lora_dropout=self.lora_config["lora_dropout"],
+            bias=self.lora_config["bias"],
+            use_gradient_checkpointing="unsloth",
+            use_rslora=False,
+            loftq_config=None,
+        )
+
+        self._setup_tokenizer(tokenizer)
         return model, tokenizer
 
     def _load_model(self):

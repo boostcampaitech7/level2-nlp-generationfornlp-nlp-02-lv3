@@ -1,5 +1,6 @@
 import os
 
+from cpt_trainer import CPTTrainer
 from data_loaders import DataLoader
 from inference import InferenceModel
 from loguru import logger
@@ -42,6 +43,14 @@ def main():
         # 모델 및 토크나이저 설정
         model_handler = ModelHandler(config["model"])
         model, tokenizer = model_handler.setup()
+
+        # # Continued PreTraining
+        cpt_trainer = CPTTrainer(
+            training_config=config["training"],
+            model=model,
+            tokenizer=tokenizer,
+        )
+        model = cpt_trainer.train()
 
         # 학습용 데이터 처리
         data_processor = DataLoader(tokenizer, config["data"])

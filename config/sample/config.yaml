@@ -38,6 +38,11 @@ model:
 
 training:
   response_template: "<start_of_turn>model"
+  cpt:
+    dataset_names: ["maywell/korean_textbooks"]
+    subset_names: ["tiny-textbooks"]
+    max_seq_length: 2048
+
   lora:
     r: 6
     lora_alpha: 8

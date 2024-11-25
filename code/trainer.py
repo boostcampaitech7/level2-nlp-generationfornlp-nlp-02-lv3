@@ -38,16 +38,45 @@ class CustomTrainer:
             task_type=self.training_config["lora"]["task_type"],
         )
 
+        # # Optimizer 설정
+        # # https://huggingface.co/docs/transformers/en/perf_train_gpu_one#8-bit-adam
+        # decay_parameters = get_parameter_names(self.model, [torch.nn.LayerNorm])
+        # decay_parameters = [name for name in decay_parameters if "bias" not in name]
+        # optimizer_grouped_parameters = [
+        #     {
+        #         "params": [p for n, p in self.model.named_parameters() if n in decay_parameters],
+        #         "weight_decay": self.training_config["params"]["weight_decay"],
+        #     },
+        #     {
+        #         "params": [p for n, p in self.model.named_parameters() if n not in decay_parameters],
+        #         "weight_decay": 0.0,
+        #     },
+        # ]
+        # adam_bnb_optim = bnb.optim.Adam8bit(
+        #     optimizer_grouped_parameters,
+        #     betas=(self.training_config["params"]["adam_beta1"], self.training_config["params"]["adam_beta2"]),
+        #     eps=self.training_config["params"]["adam_epsilon"],
+        #     lr=self.training_config["params"]["learning_rate"],
+        # )
+
         # SFT 설정
         sft_config = SFTConfig(
             do_train=self.training_config["params"]["do_train"],
             do_eval=self.training_config["params"]["do_eval"],
             lr_scheduler_type=self.training_config["params"]["lr_scheduler_type"],
             max_seq_length=self.training_config["params"]["max_seq_length"],
-            per_device_train_batch_size=self.training_config["params"]["per_device_train_batch_size"],
-            per_device_eval_batch_size=self.training_config["params"]["per_device_eval_batch_size"],
-            gradient_accumulation_steps=self.training_config["params"]["gradient_accumulation_steps"],
-            gradient_checkpointing=self.training_config["params"]["gradient_checkpointing"],
+            per_device_train_batch_size=self.training_config["params"][
+                "per_device_train_batch_size"
+            ],
+            per_device_eval_batch_size=self.training_config["params"][
+                "per_device_eval_batch_size"
+            ],
+            gradient_accumulation_steps=self.training_config["params"][
+                "gradient_accumulation_steps"
+            ],
+            gradient_checkpointing=self.training_config["params"][
+                "gradient_checkpointing"
+            ],
             max_grad_norm=self.training_config["params"]["max_grad_norm"],
             num_train_epochs=self.training_config["params"]["num_train_epochs"],
             learning_rate=self.training_config["params"]["learning_rate"],
@@ -61,12 +90,17 @@ class CustomTrainer:
             eval_steps=self.training_config["params"]["eval_steps"],
             save_total_limit=self.training_config["params"]["save_total_limit"],
             save_only_model=self.training_config["params"]["save_only_model"],
-            load_best_model_at_end=self.training_config["params"]["load_best_model_at_end"],
+            load_best_model_at_end=self.training_config["params"][
+                "load_best_model_at_end"
+            ],
             report_to=self.training_config["params"]["report_to"],
             run_name=self.training_config["params"]["run_name"],
             output_dir=self.training_config["params"]["output_dir"],
             overwrite_output_dir=self.training_config["params"]["overwrite_output_dir"],
-            metric_for_best_model=self.training_config["params"]["metric_for_best_model"],
+            metric_for_best_model=self.training_config["params"][
+                "metric_for_best_model"
+            ],
+            deepspeed=self.training_config["params"]["deepspeed"],
         )
 
         return SFTTrainer(
@@ -79,10 +113,15 @@ class CustomTrainer:
             args=sft_config,
             compute_metrics=self._compute_metrics,
             preprocess_logits_for_metrics=self._preprocess_logits_for_metrics,
+            # optimizers=(adam_bnb_optim, None),
             callbacks=[
                 EarlyStoppingCallback(
-                    early_stopping_patience=self.training_config["params"]["early_stop_patience"],
-                    early_stopping_threshold=self.training_config["params"]["early_stop_threshold"],
+                    early_stopping_patience=self.training_config["params"][
+                        "early_stop_patience"
+                    ],
+                    early_stopping_threshold=self.training_config["params"][
+                        "early_stop_threshold"
+                    ],
                 )
             ],
         )

@@ -27,12 +27,10 @@ def set_seed(seed=42):
     random.seed(seed)
 
 
-def load_config():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="config.yaml")
-    args = parser.parse_args()
+# deepspeed 설정간 충돌로 인해 argparse 제거
+def load_config(config_path="config.yaml"):
 
-    with open(os.path.join("../config", args.config), encoding="utf-8") as f:
+    with open(os.path.join("../config", config_path), encoding="utf-8") as f:
         config = yaml.safe_load(f)
     return config
 

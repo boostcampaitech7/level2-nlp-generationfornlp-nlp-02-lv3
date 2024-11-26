@@ -1,7 +1,12 @@
+import deepspeed
 from loguru import logger
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-import deepspeed
+from transformers import (
+    AutoConfig,
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+)
 
 
 class ModelHandler:
@@ -54,7 +59,10 @@ class ModelHandler:
             pin_memory=True,
             dtype=torch_dtype,  # 필요에 따라 변경 가능
         ):
-            model = AutoModelForCausalLM.from_pretrained(self.base_model, **base_kwargs)
+            # 모델 구성 로드
+            config = AutoConfig.from_pretrained(self.base_model)
+            # 모델 초기화
+            model = AutoModelForCausalLM.from_config(config, **base_kwargs)
 
         # 모델 설정
         model.config.use_cache = self.model_config["use_cache"]

@@ -1,14 +1,14 @@
 # main.py
 
-import os
 import argparse
-import torch
-import torch.distributed as dist
+import os
 
 from data_loaders import DataLoader
 from inference import InferenceModel
 from loguru import logger
 from model import ModelHandler
+import torch
+import torch.distributed as dist
 from trainer import CustomTrainer
 from utils import (
     GoogleDriveManager,
@@ -66,7 +66,7 @@ def main():
         # 모델 및 토크나이저 설정
         model_handler = ModelHandler(config["model"])
         model, tokenizer = model_handler.setup()
-        model.to(device)
+        # model.to(device)
 
         # 학습용 데이터 처리
         data_processor = DataLoader(tokenizer, config["data"])

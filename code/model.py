@@ -1,6 +1,7 @@
 from loguru import logger
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+import deepspeed
 
 
 class ModelHandler:
@@ -16,7 +17,10 @@ class ModelHandler:
 
     def _load_model(self):
         torch_dtype = getattr(torch, self.model_config["torch_dtype"])
-        base_kwargs = {"trust_remote_code": True, "low_cpu_mem_usage": self.model_config["low_cpu_mem_usage"]}
+        base_kwargs = {
+            "trust_remote_code": True,
+            # "low_cpu_mem_usage": self.model_config["low_cpu_mem_usage"],
+        }
 
         if self.model_config["quantization"] == "BitsAndBytes":
             bits = self.model_config["bits"]
@@ -44,12 +48,22 @@ class ModelHandler:
             base_kwargs["torch_dtype"] = torch_dtype
 
         logger.debug(f"base_kwargs: {base_kwargs}")
-        model = AutoModelForCausalLM.from_pretrained(self.base_model, **base_kwargs)
+        # DeepSpeed의 zero.Init()을 사용하여 모델 로드
+        with deepspeed.zero.Init(
+            remote_device="cpu",
+            pin_memory=True,
+            dtype=torch_dtype,  # 필요에 따라 변경 가능
+        ):
+            model = AutoModelForCausalLM.from_pretrained(self.base_model, **base_kwargs)
+
+        # 모델 설정
         model.config.use_cache = self.model_config["use_cache"]
         return model
 
     def _load_tokenizer(self):
-        tokenizer = AutoTokenizer.from_pretrained(self.base_model, trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(
+            self.base_model, trust_remote_code=True
+        )
         self._setup_tokenizer(tokenizer)
         return tokenizer
 

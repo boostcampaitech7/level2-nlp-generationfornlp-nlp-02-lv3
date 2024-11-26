@@ -1,4 +1,6 @@
 {
+    "train_micro_batch_size_per_gpu": "auto",
+    "gradient_accumulation_steps": "auto",
     "zero_optimization": {
       "stage": 2,
       "offload_optimizer": {
@@ -6,22 +8,18 @@
         "pin_memory": true
       }
     },
+    "gradient_clipping": "auto",
     "fp16": {
-      "enabled": true
+      "enabled": "auto"
     },
     "optimizer": {
       "type": "AdamW",
       "params": {
-        "lr": 5e-6,
-        "betas": [
-          0.9,
-          0.999
-        ],
+        "lr": "auto",
+        "betas": [0.9, 0.999],
         "eps": 1e-8,
-        "weight_decay": 0.01
+        "weight_decay": "auto"
       }
-    },
-    "gradient_accumulation_steps": 1,
-    "gradient_clipping": 1.0
+    }
   }
   

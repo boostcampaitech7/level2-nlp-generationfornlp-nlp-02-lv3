@@ -31,7 +31,9 @@ class DataLoader:
     def prepare_datasets(self, is_train):
         """학습 또는 테스트용 데이터셋 준비"""
         # prompt 전처리된 데이터셋 파일이 존재한다면 이를 로드합니다.
-        processed_df_path = self.processed_train_path if is_train else self.processed_test_path
+        processed_df_path = (
+            self.processed_train_path if is_train else self.processed_test_path
+        )
         if os.path.isfile(processed_df_path):
             logger.info(f"전처리된 데이터셋을 불러옵니다: {processed_df_path}")
             processed_df = pd.read_csv(processed_df_path, encoding="utf-8")
@@ -48,6 +50,12 @@ class DataLoader:
         return processed_dataset
 
     def _retrieve(self, df):  # noqa: C901
+
+        # retriever_type이 None 또는 빈 문자열일 경우 빈 리스트 반환
+        retriever_type = self.retriever_config.get("retriever_type", "").lower()
+        if retriever_type == "none" or not retriever_type:
+            return [""] * len(df)
+
         if self.retriever_config["retriever_type"] == "Elasticsearch":
             retriever = ElasticsearchRetriever(
                 index_name=self.retriever_config["index_name"],
@@ -63,7 +71,9 @@ class DataLoader:
                 logger.debug(f"Error while loading model: {e}")
 
             try:
-                valid_dataset = KorQuadDataset("./rag/data/KorQuAD_v1.0_dev.json")  # 데이터셋 준비
+                valid_dataset = KorQuadDataset(
+                    "./rag/data/KorQuAD_v1.0_dev.json"
+                )  # 데이터셋 준비
                 logger.debug("Valid dataset loaded successfully.")
             except Exception as e:
                 logger.debug(f"Error while loading valid dataset: {e}")
@@ -76,7 +86,9 @@ class DataLoader:
             except Exception as e:
                 logger.debug(f"Error while loading index: {e}")
 
-            ds_retriever = KorDPRRetriever(model=model, valid_dataset=valid_dataset, index=index)
+            ds_retriever = KorDPRRetriever(
+                model=model, valid_dataset=valid_dataset, index=index
+            )
             logger.debug("KorDPRRetriever initialized successfully.")
         else:
             return [""] * len(df)
@@ -106,7 +118,9 @@ class DataLoader:
 
         queries = df.apply(_combine_text, axis=1)
         if self.retriever_config["retriever_type"] == "Elasticsearch":
-            filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
+            filtered_queries = [
+                (i, q) for i, q in enumerate(queries) if len(q) <= query_max_length
+            ]
             if not filtered_queries:
                 return [""] * len(queries)
 
@@ -115,12 +129,16 @@ class DataLoader:
             rerank_k = self.retriever_config["rerank_k"]
             if rerank_k > 0:
                 with Reranker() as reranker:
-                    retrieve_results = reranker.rerank(valid_queries, retrieve_results, rerank_k)
+                    retrieve_results = reranker.rerank(
+                        valid_queries, retrieve_results, rerank_k
+                    )
             # [[{"text":"안녕하세요", "score":0.5}, {"text":"반갑습니다", "score":0.3},],]
 
             docs = [""] * len(queries)
             for idx, result in zip(indices, retrieve_results):
-                docs[idx] = " ".join(item["text"] for item in result if item["score"] >= threshold)
+                docs[idx] = " ".join(
+                    item["text"] for item in result if item["score"] >= threshold
+                )
                 docs[idx] = docs[idx][: self.retriever_config["result_max_length"]]
         elif self.retriever_config["retriever_type"] == "DPR":  # DPR인 경우
             docs = []
@@ -134,7 +152,9 @@ class DataLoader:
                     if path:
                         with open(path, "rb") as f:
                             passage_dict = pickle.load(f)
-                            docs.append((passage_dict[idx], score))  # passage와 score 저장
+                            docs.append(
+                                (passage_dict[idx], score)
+                            )  # passage와 score 저장
                     else:
                         logger.debug(f"No passage found for ID: {idx}")
 
@@ -149,7 +169,14 @@ class DataLoader:
         file_path = self.train_path if is_train else self.test_path
         df = pd.read_csv(file_path)
         df["problems"] = df["problems"].apply(literal_eval)
-        docs = self._retrieve(df)
+
+        # retriever를 사용하지 않을 경우 빈 문서 리스트 생성
+        retriever_type = self.retriever_config.get("retriever_type", "").lower()
+        if retriever_type == "none" or not retriever_type:
+            docs = [""] * len(df)
+        else:
+            docs = self._retrieve(df)
+
         records = []
         for idx, row in df.iterrows():
             problems = row["problems"]
@@ -163,7 +190,7 @@ class DataLoader:
                 "document": docs[idx],
             }
             records.append(record)
-        logger.info("dataset 로드 및 retrive 완료.")
+        logger.info("dataset 로드 완료.")
         return records
 
     def _process_dataset(self, dataset: List[Dict], is_train=True):
@@ -173,7 +200,9 @@ class DataLoader:
         logger.info("데이터셋 전처리를 수행합니다.")
         processed_data = []
         for row in dataset:
-            choices_string = "\n".join([f"{idx + 1} - {choice}" for idx, choice in enumerate(row["choices"])])
+            choices_string = "\n".join(
+                [f"{idx + 1} - {choice}" for idx, choice in enumerate(row["choices"])]
+            )
 
             # start
             if row["question_plus"]:
@@ -196,6 +225,7 @@ class DataLoader:
                 )
             else:
                 message_mid = self.prompt_config["mid"]
+                message_mid = self.prompt_config.get("mid", "")
             # end
             message_end = self.prompt_config["end"]
 
@@ -208,11 +238,19 @@ class DataLoader:
             if is_train:
                 messages.append({"role": "assistant", "content": f"{row['answer']}"})
 
-            processed_data.append({"id": row["id"], "messages": messages, "label": row["answer"] if is_train else None})
+            processed_data.append(
+                {
+                    "id": row["id"],
+                    "messages": messages,
+                    "label": row["answer"] if is_train else None,
+                }
+            )
 
         processed_df = pd.DataFrame(processed_data)
         logger.info("데이터셋 전처리가 완료되었습니다.")
-        processed_df_path = self.processed_train_path if is_train else self.processed_test_path
+        processed_df_path = (
+            self.processed_train_path if is_train else self.processed_test_path
+        )
         if processed_df_path:
             processed_df.to_csv(processed_df_path, index=False, encoding="utf-8")
             logger.info("전처리된 데이터셋이 저장되었습니다.")
@@ -254,7 +292,9 @@ class DataLoader:
 
         # 토큰 길이가 max_seq_length를 초과하는 데이터 필터링
         logger.info(f"dataset length: {len(tokenized_dataset)}")
-        tokenized_dataset = tokenized_dataset.filter(lambda x: len(x["input_ids"]) <= self.max_seq_length)
+        tokenized_dataset = tokenized_dataset.filter(
+            lambda x: len(x["input_ids"]) <= self.max_seq_length
+        )
         logger.info(f"filtered dataset length: {len(tokenized_dataset)}")
 
         return tokenized_dataset
@@ -264,8 +304,14 @@ class DataLoader:
         train_dataset = split_dataset["train"]
         eval_dataset = split_dataset["test"]
 
-        logger.debug(self.tokenizer.decode(train_dataset[0]["input_ids"], skip_special_tokens=True))
-        train_dataset_token_lengths = [len(train_dataset[i]["input_ids"]) for i in range(len(train_dataset))]
+        logger.debug(
+            self.tokenizer.decode(
+                train_dataset[0]["input_ids"], skip_special_tokens=True
+            )
+        )
+        train_dataset_token_lengths = [
+            len(train_dataset[i]["input_ids"]) for i in range(len(train_dataset))
+        ]
         logger.info(f"max token length: {max(train_dataset_token_lengths)}")
         logger.info(f"min token length: {min(train_dataset_token_lengths)}")
         logger.info(f"avg token length: {np.mean(train_dataset_token_lengths)}")
@@ -285,7 +331,9 @@ if __name__ == "__main__":
                 index_name=retriever_config["index_name"],
             )
         elif retriever_config["retriever_type"] == "BM25":
-            raise NotImplementedError("BM25는 더 이상 지원하지 않습니다. Elasticsearch를 사용해주세요...")
+            raise NotImplementedError(
+                "BM25는 더 이상 지원하지 않습니다. Elasticsearch를 사용해주세요..."
+            )
 
         elif retriever_config["retriever_type"] == "DPR":
             # KorDPRRetriever 사용
@@ -298,7 +346,9 @@ if __name__ == "__main__":
                 logger.debug(f"Error while loading model: {e}")
 
             try:
-                valid_dataset = KorQuadDataset("./rag/data/KorQuAD_v1.0_dev.json")  # 데이터셋 준비
+                valid_dataset = KorQuadDataset(
+                    "./rag/data/KorQuAD_v1.0_dev.json"
+                )  # 데이터셋 준비
                 logger.debug("Valid dataset loaded successfully.")
             except Exception as e:
                 logger.debug(f"Error while loading valid dataset: {e}")
@@ -311,7 +361,9 @@ if __name__ == "__main__":
             except Exception as e:
                 logger.debug(f"Error while loading index: {e}")
 
-            ds_retriever = KorDPRRetriever(model=model, valid_dataset=valid_dataset, index=index)
+            ds_retriever = KorDPRRetriever(
+                model=model, valid_dataset=valid_dataset, index=index
+            )
             logger.debug("KorDPRRetriever initialized successfully.")
 
         else:
@@ -319,7 +371,13 @@ if __name__ == "__main__":
 
         def _combine_text(row):
             if retriever_config["query_type"] == "pqc":
-                return row["paragraph"] + " " + row["problems"]["question"] + " " + " ".join(row["problems"]["choices"])
+                return (
+                    row["paragraph"]
+                    + " "
+                    + row["problems"]["question"]
+                    + " "
+                    + " ".join(row["problems"]["choices"])
+                )
             if retriever_config["query_type"] == "pq":
                 return row["paragraph"] + " " + row["problems"]["question"]
             if retriever_config["query_type"] == "pc":
@@ -333,7 +391,9 @@ if __name__ == "__main__":
 
         queries = df.apply(_combine_text, axis=1)
         if retriever_config["retriever_type"] == "Elasticsearch":
-            filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
+            filtered_queries = [
+                (i, q) for i, q in enumerate(queries) if len(q) <= query_max_length
+            ]
             if not filtered_queries:
                 return [""] * len(queries)
 
@@ -342,13 +402,17 @@ if __name__ == "__main__":
             rerank_k = retriever_config["rerank_k"]
             if rerank_k > 0:
                 with Reranker() as reranker:
-                    retrieve_results = reranker.rerank(valid_queries, retrieve_results, rerank_k)
+                    retrieve_results = reranker.rerank(
+                        valid_queries, retrieve_results, rerank_k
+                    )
             # [[{"text":"안녕하세요", "score":0.5}, {"text":"반갑습니다", "score":0.3},],]
 
             docs = [""] * len(queries)
             for idx, result in zip(indices, retrieve_results):
                 docs[idx] = " ".join(
-                    f"[{item['score']}]: {item['text']}" for item in result if item["score"] >= threshold
+                    f"[{item['score']}]: {item['text']}"
+                    for item in result
+                    if item["score"] >= threshold
                 )
 
         elif retriever_config["retriever_type"] == "DPR":  # DPR인 경우
@@ -363,7 +427,9 @@ if __name__ == "__main__":
                     if path:
                         with open(path, "rb") as f:
                             passage_dict = pickle.load(f)
-                            docs.append((passage_dict[idx], score))  # passage와 score 저장
+                            docs.append(
+                                (passage_dict[idx], score)
+                            )  # passage와 score 저장
                     else:
                         logger.debug(f"No passage found for ID: {idx}")
 

@@ -69,9 +69,7 @@ class ModelHandler:
         return model
 
     def _load_tokenizer(self):
-        tokenizer = AutoTokenizer.from_pretrained(
-            self.base_model, trust_remote_code=True
-        )
+        tokenizer = AutoTokenizer.from_pretrained(self.base_model, trust_remote_code=True)
         self._setup_tokenizer(tokenizer)
         return tokenizer
 

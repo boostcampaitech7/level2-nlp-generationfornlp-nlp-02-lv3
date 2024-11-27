@@ -28,7 +28,6 @@ def set_seed(seed=42):
 
 # deepspeed 설정간 충돌로 인해 argparse 제거
 def load_config(config_path="config.yaml"):
-
     with open(os.path.join("../config", config_path), encoding="utf-8") as f:
         config = yaml.safe_load(f)
     return config

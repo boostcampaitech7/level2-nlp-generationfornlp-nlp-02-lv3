@@ -26,18 +26,16 @@ def main():
     # 인자 파싱
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="config.yaml")
-    parser.add_argument(
-        "--local_rank", type=int, default=-1, help="분산 학습을 위한 로컬 랭크"
-    )
+    parser.add_argument("--local_rank", type=int, default=-1, help="분산 학습을 위한 로컬 랭크")
     args = parser.parse_args()
 
     # 분산 환경 초기화
     if args.local_rank != -1:
         dist.init_process_group(backend="nccl")
         torch.cuda.set_device(args.local_rank)
-        device = torch.device("cuda", args.local_rank)
-    else:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # device = torch.device("cuda", args.local_rank)
+    # else:
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # 환경 설정 및 시드 설정
     load_env_file()
@@ -57,9 +55,7 @@ def main():
 
     # wandb 실험명으로 config 갱신
     config["training"]["run_name"] = exp_name
-    config["inference"]["output_path"] = os.path.join(
-        config["inference"]["output_path"], exp_name + "_output.csv"
-    )
+    config["inference"]["output_path"] = os.path.join(config["inference"]["output_path"], exp_name + "_output.csv")
     log_config(config)
 
     try:
